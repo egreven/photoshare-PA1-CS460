@@ -204,6 +204,7 @@ def getUsersAlbums(user_id):
 	cursor.execute("Select album_name FROM Albums WHERE user_id = '{0}'".format(user_id))
 	records = cursor.fetchall()
 	records_list = [x[0] for x in records]
+	records_list = [x for x in records_list if x != None ]
 	return records_list
 
 def getUsersFriends(user_id):
@@ -240,6 +241,18 @@ def isEmailUnique(email):
 		return True
 #end login code
 
+def deleteAlbum(album_name):
+	cursor = conn.cursor()
+	cursor.execute("DELETE FROM Albums WHERE album_name = '{0}'".format(album_name))
+	print(" Deleted Successfully ")
+	return
+
+def deletePhoto(photo_id):
+	cursor = conn.cursor()
+	cursor.execute("DELETE FROM Photos WHERE photo_id = '{0}'".format(photo_id))
+	print(" Deleted Successfully ")
+	return
+
 def insertLike(user_id, photo_id):
 	cursor = conn.cursor()
 	cursor.execute("INSERT INTO Likes (photo_id, user_id) VALUES (%s, %s)", (photo_id, user_id))
@@ -259,6 +272,27 @@ def getUserLikeListFor1Photo(photo_id):
 	user_id_list = [x[0] for x in user_ids]
 	user_email_list = [ getUserEmailFromUser_Id(y) for y in user_id_list]
 	return user_email_list
+
+def getUserFriends(user_id1):
+	cursor = conn.cursor()
+	cursor.execute("SELECT user_id2 FROM Friends WHERE user_id1 = '{0}'".format(user_id1))
+	friend = cursor.fetchall()
+	friend_list = [x[0] for x in friend]
+	return friend_list
+
+def mutualFriend(current_id, friend_id):
+	cursor = conn.cursor()
+	cursor.execute("SELECT user_id2 FROM Friends WHERE user_id1 != '{0}' AND user_id1 = '{1}' ".format(current_id, friend_id))
+	mutual = cursor.fetchall()
+	mutual_list = [x[0] for x in mutual]
+	return mutual_list
+
+def friendReccomendation(current_id):
+	friend_list = getUserFriends(current_id)
+	mutual_friends = []
+	for friend in friend_list:
+		mutual_friends += mutualFriend(current_id, friend)
+	return mutual_friends
 
 @app.route('/profile')
 @flask_login.login_required
@@ -314,7 +348,8 @@ def album():
 		albums=getUsersAlbums(user_id)
 		for album in albums:
 			print(album)
-		
+		album_delete = request.form.get('album_delete')
+		deleteAlbum(album_delete)
 		return render_template('album.html', name=flask_login.current_user.id, albums=getUsersAlbums(user_id),base64=base64)
 	#The method is GET so we return a  HTML form to create an album
 	else:
@@ -352,12 +387,32 @@ def selectalbum():
 
 	return render_template('showalbum.html', albums=albums )
 
-@app.route("/show1album/<album_name>", methods=['GET', 'POST'])
+@app.route("/show1album/<album_name>", methods=['GET'])
 def show1album(album_name):
-	if request.method == "GET":
-		print("ablum name: ", album_name)
-		photo = getAlbumsPhotos(album_name)
-		return render_template ('show1album.html', album_name=album_name, photos=photo, base64=base64)
+	print("ablum name: ", album_name)
+	photo = getAlbumsPhotos(album_name)
+	return render_template ('show1album.html', album_name=album_name, photos=photo, base64=base64)
+
+def isOwner(photo_id, user_id):
+	cursor = conn.cursor()
+	cursor.execute("SELECT user_id FROM Photos WHERE photo_id = '{0}' AND user_id = '{1}'".format(photo_id, user_id))
+	user_list = cursor.fetchall()
+	user_list_1 = [x[0] for x in user_list]
+	if (len(user_list_1) > 0):
+		return (user_list_1[0] == user_id)
+	return False
+
+@app.route("/show1album/<album_name>", methods=["POST"])
+@flask_login.login_required
+def deletePhotoFunction(album_name):
+	user_id = getUserIdFromEmail(flask_login.current_user.id)
+	photo_delete = request.form.get('photo_delete')
+	if (isOwner(photo_delete, user_id)):
+		deletePhoto(photo_delete)
+	else:
+		return render_template('error_not_yours.html')
+	photo = getAlbumsPhotos(album_name)
+	return render_template ('show1album.html',  album_name=album_name, photos=photo, base64=base64)
 
 @app.route('/errorsameuser')
 def sameuser():
@@ -454,7 +509,13 @@ def ListFriends():
 	for friend_id in friends_ids:
 		friends_emails = friends_emails + [getUserEmailFromUser_Id(friend_id)]
 	
-	return render_template('friend.html', user_emails=user_emails, friends_emails=friends_emails)
+	friend_reccomend = friendReccomendation(user_id)
+	reccomendation = []
+	for friend in friend_reccomend:
+		reccomendation += [getUserEmailFromUser_Id(friend)]
+	
+
+	return render_template('friend.html', reccomendation= reccomendation, user_emails=user_emails, friends_emails=friends_emails)
 
 
 
