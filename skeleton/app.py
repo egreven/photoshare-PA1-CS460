@@ -151,9 +151,18 @@ def register_user():
 def register_error():
 		return render_template('registererror.html', supress='False')	
 
+
 def getAllUser_IDS():
 	cursor = conn.cursor()
 	cursor.execute("""SELECT user_id from Users """)
+	records = cursor.fetchall()
+	# all user ids in list form
+	records_list = [x[0] for x in records]
+	return records_list
+
+def getAllUser_Emails():
+	cursor = conn.cursor()
+	cursor.execute("""SELECT email from Users """)
 	records = cursor.fetchall()
 	# all user ids in list form
 	records_list = [x[0] for x in records]
@@ -164,9 +173,30 @@ def getUsersPhotos(user_id):
 	cursor.execute("SELECT data, photo_id, caption FROM Photos WHERE user_id = '{0}'".format( user_id))
 	return cursor.fetchall() #NOTE list of tuples, [(imgdata, pid), ...]
 
+def getCommentsOnPhotos(photo_id):
+	cursor = conn.cursor()
+	cursor.execute("SELECT user_id, text FROM Comments WHERE photo_id = '{0}'".format(photo_id))
+	records = cursor.fetchall()
+	# all user ids in list form
+	records_list = [ [x[0], x[1]] for x in records]
+	return records_list
+
+def getOnePhotoInfo(photo_id):
+	cursor = conn.cursor()
+	cursor.execute("SELECT data, photo_id, caption FROM Photos WHERE photo_id = '{0}'".format(photo_id))
+	return cursor.fetchall()
+
+def getUseridfromphoto(photo_id):
+	cursor = conn.cursor()
+	cursor.execute("SELECT user_id FROM Photos WHERE photo_id = '{0}'".format(photo_id))
+	records = cursor.fetchall()
+	# all user ids in list form
+	records_list = [ x[0] for x in records]
+	return records_list
+
 def getAlbumsPhotos(album_name):
 	cursor = conn.cursor()
-	cursor.execute(" SELECT data, photo_id, caption FROM Photos WHERE album_name = '{0}'")
+	cursor.execute(" SELECT data, photo_id, caption FROM Photos WHERE album_name = '{0}'".format(album_name))
 	return cursor.fetchall()
 
 def getUsersAlbums(user_id):
@@ -176,6 +206,20 @@ def getUsersAlbums(user_id):
 	records_list = [x[0] for x in records]
 	return records_list
 
+def getUsersFriends(user_id):
+	cursor = conn.cursor()
+	cursor.execute("SELECT user_id2 FROM Friends WHERE user_id1= '{0}'".format(user_id))
+	records = cursor.fetchall()
+	records_list = [x[0] for x in records]
+	return records_list
+
+def getUserEmailFromUser_Id(user_id):
+	cursor = conn.cursor()
+	cursor.execute("SELECT email FROM Users WHERE user_id = '{0}'".format(user_id))
+	records = cursor.fetchall()
+	records_list = [x[0] for x in records]
+	return records_list
+	
 def getUserIdFromEmail(email):
 	cursor = conn.cursor()
 	cursor.execute("SELECT user_id  FROM Users WHERE email = '{0}'".format(email))
@@ -195,6 +239,19 @@ def isEmailUnique(email):
 	else:
 		return True
 #end login code
+
+def insertLike(user_id, photo_id):
+	cursor = conn.cursor()
+	cursor.execute("INSERT INTO Likes (photo_id, user_id) VALUES (%s, %s)", (photo_id, user_id))
+	conn.commit()
+	return
+
+def getLikesCountFor1Photo(photo_id):
+	cursor = conn.cursor()
+	cursor.execute("SELECT COUNT * FROM Likes WHERE photo_id = '{0}'".format(photo_id))
+	num_likes = cursor.fetchall()
+	return num_likes[0]
+
 
 @app.route('/profile')
 @flask_login.login_required
@@ -220,11 +277,12 @@ def upload_file():
 		cursor = conn.cursor()
 		cursor.execute('''INSERT INTO Photos (data, user_id, caption, albums_id, album_name) VALUES (%s, %s, %s, %s, %s ) ''' ,(data,user_id, caption, album_id, album_name))
 		conn.commit()
-		return render_template('hello.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getUsersPhotos(user_id), albums = getUsersAlbums(user_id),base64=base64)
+		return render_template('hello.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getUsersPhotos(user_id), Albums = getUsersAlbums(user_id),base64=base64)
 	#The method is GET so we return a  HTML form to upload the a photo.
 	else:
+		user_id = getUserIdFromEmail(flask_login.current_user.id)
 		print(" Arriving at GET upload method")
-		return render_template('upload.html')
+		return render_template('upload.html', Albums = getUsersAlbums(user_id))
 #end photo uploading code
 
 #show all photos
@@ -291,13 +349,116 @@ def show1album(album_name):
 	if request.method == "GET":
 		print("ablum name: ", album_name)
 		photo = getAlbumsPhotos(album_name)
-		return render_template ('show1album.html', album_name=album_name, photos=photo)
+		return render_template ('show1album.html', album_name=album_name, photos=photo, base64=base64)
+
+@app.route('/errorsameuser')
+def sameuser():
+		return render_template('errorsameuser.html')	
+
+@app.route("/displayphoto/<photo_id>", methods=['GET', 'POST'])
+def displayphoto(photo_id):
+	photo_info = getOnePhotoInfo(photo_id)
+	if request.method == "GET":
+		comments = getCommentsOnPhotos(photo_id)
+
+	else:
+		commentText= request.form.get('comment')
+		print("this is the comment:", commentText)
+		if (flask_login.current_user.is_authenticated):
+			user_email = flask_login.current_user.id
+			user_id = getUserIdFromEmail(user_email)
+		else:
+			user_id = None
+		
+		datetoday = date.today()
+		LikeButton = request.form.get('Like')
+		if LikeButton:
+			insertLike(user_id, photo_id)
+		
+		# check if user id on photo matches user id for comment if so no execute else 
+		print(" this is user_id: ", user_id)
+		print(" this is user_id from getUserId Photo function : ", getUseridfromphoto(photo_id)[0])
+		if (user_id == getUseridfromphoto(photo_id)[0]):
+			return render_template('errorsameuser.html', message="You can not comment on your own photos", photo_info = photo_info, base64=base64)
+		cursor = conn.cursor()
+		cursor.execute('''INSERT INTO Comments ( user_id, photo_id, text, date) VALUES (%s, %s, %s, %s ) ''' ,(user_id, photo_id, commentText, datetoday))
+		conn.commit()
+	comments = getCommentsOnPhotos(photo_id) # nested list of [user_id, text]
+	for comment in comments:
+		if comment[0] == None:
+			comment[0] = "anonymous"
+		else:
+			comment[0] = getUserEmailFromUser_Id(comment[0])
+			print("this is user email: ", comment[0])
+	
+
+
+	return render_template('displayphoto.html', num_likes= getLikesCountFor1Photo(photo_id), comments=comments , photo_info = photo_info, base64=base64)
+
+def getMatchingComment(comment_text):
+	print(" this is comment_text in getMatchingCOmment ", comment_text)
+	print(" this is comment_text in getMatchingCOmment ", comment_text)
+	cursor = conn.cursor()
+	#												HOW TO GET CORRECT EXACT MATCH TEXT?
+	cursor.execute('''SELECT user_id, text FROM Comments WHERE text LIKE '%{0}%' ORDER BY user_id desc'''.format(comment_text))
+	records = cursor.fetchall()
+	print(" this is records: ", records)
+	# all user ids in list form
+	records_list = [ [x[0], x[1]] for x in records]
+	return records_list
+
+@app.route ("/searchcomments", methods=['GET', 'POST'])
+def searchcomments():
+	if request.method=='POST':
+		comment_text= request.form.get('comment')
+		matching_comments = getMatchingComment(comment_text)
+		print("these are matching comments: ", matching_comments)
+		return render_template('searchcomments.html', comments=matching_comments)
+	
+	return render_template('searchcomments.html') 
+
+@app.route("/friend", methods=['POST'])
+@flask_login.login_required
+def makefriend():
+	user_id1 = getUserIdFromEmail(flask_login.current_user.id)
+	user_emails = getAllUser_Emails()
+	friend_email = request.form.get('friend_email')
+	print(" this is friends email: ", friend_email)
+	user_id2 = getUserIdFromEmail (friend_email)
+	print(" this is friend's id: ", user_id2)
+	cursor = conn.cursor()
+	cursor.execute('''INSERT INTO Friends (user_id1, user_id2) VALUES (%s, %s )''', (user_id1, user_id2))
+	
+	conn.commit()
+	friends_ids = getUsersFriends(user_id1)
+
+	friends_emails = []
+	for friend_id in friends_ids:
+		friends_emails = friends_emails + [getUserEmailFromUser_Id(friend_id)]
+	
+
+	return render_template('friend.html', user_emails=user_emails, friends_emails=friends_emails)
+
+@app.route("/friend", methods=['GET'])
+@flask_login.login_required
+def ListFriends():
+	user_id = getUserIdFromEmail(flask_login.current_user.id)
+	friends_ids = getUsersFriends(user_id)
+	user_emails = getAllUser_Emails()
+	friends_emails = []
+	for friend_id in friends_ids:
+		friends_emails = friends_emails + [getUserEmailFromUser_Id(friend_id)]
+	
+	return render_template('friend.html', user_emails=user_emails, friends_emails=friends_emails)
+
+
+
 
 #default page
 @app.route("/", methods=['GET'])
 def hello():
 	return render_template('hello.html', message='Welecome to Photoshare')
-
+	
 
 if __name__ == "__main__":
 	#this is invoked when in the shell  you run
