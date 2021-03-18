@@ -75,7 +75,7 @@ CREATE TABLE Tagged(
 
 CREATE TABLE Comments(
  comment_id INTEGER AUTO_INCREMENT,
- user_id INTEGER,
+ user_id INTEGER NOT NULL,
  photo_id INTEGER NOT NULL,
  text VARCHAR (100),
  date DATE,
