@@ -530,41 +530,26 @@ def selecttag():
 @flask_login.login_required
 def rec():
 	user_id_list = getAllUser_IDS()
-
 	photos = []
 	for user_id in user_id_list:
 		photos = photos + [x for x in getUsersPhoto_Ids(user_id)]
-	
 	print(photos)
-
 	user = getUserIdFromEmail(flask_login.current_user.id)
-
 	mypics = getUsersPhoto_Ids(user)
-
 	print(mypics)
-
 	c = [x for x in photos if x not in mypics]
-
 	print(c)
-
 	tags = []
 	for photo in mypics:
 		tags = tags + [getTag_IdFromPhoto_id(photo) ]
 
 	tagids = tags[0]
-
 	print(tags[0])
-
 	photoids = getPhotosFromTaglist(tagids)
-
 	print(photoids)
-
 	photoidsfinal = [x for x in photoids if x not in mypics]
-
 	print(photoidsfinal)
-
 	photosfinal = []
-
 	for i in photoidsfinal:
 		photosfinal = photosfinal + [x for x in getPhotosFromPhoto_Id(i)]
 
@@ -796,6 +781,7 @@ def displayphoto(photo_id):
 		cursor = conn.cursor()
 		cursor.execute('''INSERT INTO Comments ( user_id, photo_id, text, date) VALUES (%s, %s, %s, %s ) ''' ,(user_id, photo_id, commentText, datetoday))
 		conn.commit()
+		print("this is commentText: ", commentText)
 		return render_template('displayphoto.html', user_like_list = getUserLikeListFor1Photo(photo_id), num_likes= getLikesCountFor1Photo(photo_id)[0], comments=comments , photo_info = photos, base64=base64)
 
 	return render_template('displayphoto.html', user_like_list = getUserLikeListFor1Photo(photo_id), num_likes= getLikesCountFor1Photo(photo_id)[0], comments=comments , photo_info = photos, base64=base64)
@@ -808,7 +794,8 @@ def getMatchingComment(comment_text):
 	records = cursor.fetchall()
 	print(" this is records: ", records)
 	# all user ids in list form
-	records_list = [ [getUserEmailFromUser_Id(x[0])[0], x[1]] for x in records]
+	records_list = [ [x[0], x[1]] for x in records]
+	print("this is records list: ", records_list)
 	return records_list
 
 @app.route ("/searchcomments", methods=['GET', 'POST'])
