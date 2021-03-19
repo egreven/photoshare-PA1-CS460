@@ -738,7 +738,7 @@ def gettop10():
 	
 	tags1 = []
 	for i in sorted_data:
-   		tags1.append(getTagFromTag_Id(i[1]))
+   		tags1.append(i[1])
 
 	tags1.reverse()
 	
