@@ -24,7 +24,7 @@ app.secret_key = 'super secret string'  # Change this!
 
 #These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'PASSWORD'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'Penelope1595'
 app.config['MYSQL_DATABASE_DB'] = 'photoshare'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
@@ -336,7 +336,7 @@ def getPhotosFromPhoto_Id(photo_id):
 def getTagFromTag_Id(tag_id):
 	cursor = conn.cursor()
 	cursor.execute("SELECT name FROM Tags WHERE tag_id = '{0}'".format(tag_id))
-	return cursor.fetchone()[0]
+	return cursor.fetchone()
 
 def getTag_IdFromTag(name):
 	cursor = conn.cursor()
@@ -856,7 +856,7 @@ def ListFriends():
 	friend_recommend = friendRecommendation(user_id)
 	recommendation = []
 	for friend in friend_recommend:
-		reccomendation += [getUserEmailFromUser_Id(friend)]
+		recommendation += [getUserEmailFromUser_Id(friend)]
 	
 	return render_template('friend.html', recommendation= recommendation, user_emails=user_emails, friends_emails=friends_emails)
 
