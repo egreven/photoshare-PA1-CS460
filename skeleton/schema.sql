@@ -47,7 +47,7 @@ CREATE TABLE Albums(
 
 CREATE TABLE Tags(
  tag_id INTEGER AUTO_INCREMENT,
- name VARCHAR(100),
+ name VARCHAR(100) UNIQUE,
  PRIMARY KEY (tag_id)
 );
 

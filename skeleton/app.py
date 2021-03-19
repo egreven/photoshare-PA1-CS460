@@ -325,8 +325,8 @@ def getTag_IdFromPhoto_id(photo_id):
 	cursor = conn.cursor()
 	cursor.execute("SELECT tag_id FROM Tagged WHERE photo_id = '{0}'".format(photo_id))
 	records = cursor.fetchall()
-	records_list = [x[0] for x in records]
-	return records_list
+	tag_id_list = [x[0] for x in records]
+	return tag_id_list
 
 def getPhotosFromPhoto_Id(photo_id):
 	cursor = conn.cursor()
