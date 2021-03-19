@@ -801,8 +801,7 @@ def displayphoto(photo_id):
 	return render_template('displayphoto.html', user_like_list = getUserLikeListFor1Photo(photo_id), num_likes= getLikesCountFor1Photo(photo_id)[0], comments=comments , photo_info = photos, base64=base64)
 
 def getMatchingComment(comment_text):
-	print(" this is comment_text in getMatchingCOmment ", comment_text)
-	print(" this is comment_text in getMatchingCOmment ", comment_text)
+	print(" this is comment_text in getMatchingComment ", comment_text)
 	cursor = conn.cursor()
 	#												HOW TO GET CORRECT EXACT MATCH TEXT?
 	cursor.execute('''SELECT user_id, text FROM Comments WHERE text LIKE '%{0}%' ORDER BY user_id desc'''.format(comment_text))
