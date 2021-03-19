@@ -843,7 +843,7 @@ def ListFriends():
 	recommendation = []
 	for friend in friend_recommend:
 		recommendation += [getUserEmailFromUser_Id(friend)]
-	
+	print("these are the recommendations: ", recommendation)
 	return render_template('friend.html', recommendation= recommendation, user_emails=user_emails, friends_emails=friends_emails)
 
 @app.route("/top10users", methods=['GET'])
