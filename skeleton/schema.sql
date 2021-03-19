@@ -68,7 +68,7 @@ CREATE TABLE Tagged(
  tag_id INTEGER,
  PRIMARY KEY (photo_id, tag_id),
  FOREIGN KEY(photo_id)
- REFERENCES Photos (photo_id),
+ REFERENCES Photos (photo_id) ON DELETE CASCADE,
  FOREIGN KEY(tag_id)
  REFERENCES Tags (tag_id)
 );
@@ -83,7 +83,7 @@ CREATE TABLE Comments(
  FOREIGN KEY (user_id)
  REFERENCES Users (user_id),
  FOREIGN KEY (photo_id)
- REFERENCES Photos (photo_id)
+ REFERENCES Photos (photo_id) ON DELETE CASCADE
 );
 
 CREATE TABLE Likes(
@@ -91,7 +91,7 @@ CREATE TABLE Likes(
  user_id INTEGER,
  PRIMARY KEY (photo_id,user_id),
  FOREIGN KEY (photo_id)
- REFERENCES Photos (photo_id),
+ REFERENCES Photos (photo_id) ON DELETE CASCADE,
  FOREIGN KEY (user_id)
  REFERENCES Users (user_id)
 );

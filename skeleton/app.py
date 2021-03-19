@@ -168,6 +168,17 @@ def getAllTags():
 	records_list = [x[0] for x in records]
 	return records_list
 
+def getPhotosFromTaglistOr(tag_idlist):
+	photos = []
+	for tag in tag_idlist:
+		photos = photos + [x for x in getPhotosFromTags(tag)]
+	res = [] 
+	for i in photos: 	
+		if i not in res: 
+			res.append(i) 
+
+	print(res)
+	return res
 
 def getAllUser_Emails():
 	cursor = conn.cursor()
@@ -339,9 +350,13 @@ def getTagFromTag_Id(tag_id):
 	return cursor.fetchone()[0]
 
 def getTag_IdFromTag(name):
+	print(" this is name: ", name)
 	cursor = conn.cursor()
 	cursor.execute("SELECT tag_id FROM Tags WHERE name = '{0}'".format(name))
-	return cursor.fetchone()[0]
+	x = cursor.fetchone()
+	print("this is x: ", x)
+	print("this is x[0]: ", x[0])
+	return x[0]
 	
 def getUserIdFromEmail(email):
 	cursor = conn.cursor()
@@ -371,20 +386,23 @@ def isEmailUnique(email):
 def deleteAlbum(album_name):
 	cursor = conn.cursor()
 	cursor.execute("DELETE FROM Albums WHERE album_name = '{0}'".format(album_name))
+	conn.commit()
 	print(" Deleted Successfully ")
-	return
+	return "Deleted"
 
 def deletePhoto(photo_id):
 	cursor = conn.cursor()
 	cursor.execute("DELETE FROM Photos WHERE photo_id = '{0}'".format(photo_id))
+	conn.commit()
 	print(" Deleted Successfully ")
-	return
+	
+	return "Deleted"
 
 def insertLike(user_id, photo_id):
 	cursor = conn.cursor()
 	cursor.execute("INSERT INTO Likes (photo_id, user_id) VALUES (%s, %s)", (photo_id, user_id))
 	conn.commit()
-	return
+	return "inserted"
 
 def getLikesCountFor1Photo(photo_id):
 	cursor = conn.cursor()
@@ -646,9 +664,11 @@ def imgsearch():
 		tag = request.form.get('search_here')
 		tagl = tag.split(",")
 		tagid = []
+		print("this is tagl: ", tagl)
 		for i in tagl:
+			print(" this is i", i)
 			tagid.append(getTag_IdFromTag(i))
-		photoidlist = getPhotosFromTaglist(tagid)
+		photoidlist = getPhotosFromTaglistOr(tagid)
 		photos = []
 		for i in photoidlist:
 			photos = photos + [x for x in getPhotosFromPhoto_Id(i)]
@@ -708,10 +728,14 @@ def isOwner(photo_id, user_id):
 @flask_login.login_required
 def deletePhotoFunction(album_name):
 	user_id = getUserIdFromEmail(flask_login.current_user.id)
+	print("this is user id:u", user_id)
 	photo_delete = request.form.get('photo_delete')
+	print("this is id to delete:",photo_delete)
 	if (isOwner(photo_delete, user_id)):
 		deletePhoto(photo_delete)
+		return render_template ('show1album.html',  album_name=album_name, base64=base64)
 	else:
+		photo = getAlbumsPhotos(album_name)
 		return render_template('error_not_yours.html')
 	photo = getAlbumsPhotos(album_name)
 	return render_template ('show1album.html',  album_name=album_name, photos=photo, base64=base64)
